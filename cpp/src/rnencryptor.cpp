@@ -1,6 +1,10 @@
 
 #include "rnencryptor.h"
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
 #include <sstream>
 using std::stringstream;
 
@@ -26,36 +30,40 @@ string RNEncryptor::encrypt(string plaintext, string password, RNCryptorSchema s
 	RNCryptorPayloadComponents components;
 	components.schema = (char)schemaVersion;
 	components.options = (char)this->options;
-	components.salt = this->generateSalt();
-	components.hmacSalt = this->generateSalt();
-	components.iv = this->generateIv(this->ivLength);
+	components.salt = this->generateRandomString(this->saltLength);
+	components.hmacSalt = this->generateRandomString(this->saltLength);
+	components.iv = this->generateRandomString(this->ivLength);
+
+	/*
+	cout << endl;
+	cout << "--- " << __func__ << " Components ---" << endl;
+	cout << "Schema:     " << this->hex_encode(components.schema) << endl;
+	cout << "Options:    " << this->hex_encode(components.options) << endl;
+	cout << "Salt:       " << this->hex_encode(components.salt) << endl;
+	cout << "HMAC Salt:  " << this->hex_encode(components.hmacSalt) << endl;
+	cout << "IV:         " << this->hex_encode(components.iv) << endl;
+	*/
 
 	SecByteBlock key = this->generateKey(components.salt, password);
 
 	switch (this->aesMode) {
 		case MODE_CTR: {
-
-			CTR_Mode<AES>::Encryption encryptor;
-			encryptor.SetKeyWithIV((const byte *)key.data(), key.size(), (const byte *)components.iv.data());
-
-			StringSource(plaintext, true,
-				// StreamTransformationFilter adds padding as required.
-				new StreamTransformationFilter(encryptor,
-					new StringSink(components.ciphertext)
-				)
-			);
-
+			components.ciphertext = this->aesCtrLittleEndianCrypt(plaintext, key, components.iv);
 			break;
 		}
 		case MODE_CBC: {
 
+			string paddedPlaintext = this->addPKCS7Padding(plaintext, components.iv.length());
+//cout << "Padded plaintext length: " << paddedPlaintext.length() << endl;
+
 			CBC_Mode<AES>::Encryption encryptor;
 			encryptor.SetKeyWithIV(key.BytePtr(), key.size(), (const byte *)components.iv.data());
 
-			StringSource(plaintext, true,
+			StringSource(paddedPlaintext, true,
 				// StreamTransformationFilter adds padding as required.
 				new StreamTransformationFilter(encryptor,
-					new StringSink(components.ciphertext)
+					new StringSink(components.ciphertext),
+					StreamTransformationFilter::NO_PADDING
 				)
 			);
 
@@ -71,26 +79,49 @@ string RNEncryptor::encrypt(string plaintext, string password, RNCryptorSchema s
 	binaryData << components.iv;
 	binaryData << components.ciphertext;
 
-	std::cout << "Hex encoded: " << this->hex_encode(binaryData.str()) << std::endl;
+	//cout << "Hex encoded: " << this->hex_encode(binaryData.str()) << endl;
 
-	binaryData << this->generateHmac(components, password);
+	components.hmac = this->generateHmac(components, password);
+
+	binaryData << components.hmac;
+
+	//cout << "Ciphertext: " << this->hex_encode(components.ciphertext) << endl;
+	//cout << "HMAC:       " << this->hex_encode(components.hmac) << endl;
+	//cout << endl;
 
 	return this->base64_encode(binaryData.str());
 }
 
-string RNEncryptor::generateSalt()
+string RNEncryptor::addPKCS7Padding(string plaintext, int blockSize)
 {
-	return this->generateIv(this->saltLength);
+	string paddedPlaintext;
+	paddedPlaintext.assign(plaintext.begin(), plaintext.end());
+
+	int padSize = blockSize - plaintext.length() % blockSize;
+
+	stringstream padStream;
+	for (int i = 0; i < padSize; i++) {
+		padStream << (char)padSize;
+	}
+	paddedPlaintext.append(padStream.str());
+
+	return paddedPlaintext;
 }
 
-string RNEncryptor::generateIv(int length)
+string RNEncryptor::generateRandomString(int length)
 {
+	//cout << __func__ << "(" << length << ")" << endl;
+
 	AutoSeededRandomPool prng;
 
-	byte iv[length];
-	prng.GenerateBlock(iv, sizeof(iv));
+	SecByteBlock randomBytes(length);
+	prng.GenerateBlock(randomBytes, randomBytes.size());
 
-	string ivString = string((char *)iv);
-	return ivString;
+	byte * randomData = randomBytes.BytePtr();
+	stringstream randomStream;
+	for (int i = 0; i < (int)randomBytes.size(); i++) {
+		randomStream << randomData[i];
+	}
+	return randomStream.str();
 }
 

@@ -1,13 +1,23 @@
 #include <string>
 using std::string;
 
+#include "rncryptor.h"
+
 class RNCryptorTests {
 	int completedTests;
 	int failedTests;
 	int nonImplementedTests;
 	int passedTests;
 
-	void performDecryptionTest(string functionName, string encrypted, string password);
+	void performSymmetricTest(string functionName, string plaintext, string password);
+	void performSymmetricTestWithExplicitSchema(string functionName, string plaintext, string password, RNCryptorSchema schemaVersion);
+
+	void performDecryptionTest(string functionName, string encrypted, string expected, string password);
+
+	void performEncryptionTest(string functionName, string plaintext, string password);
+	void performEncryptionTestWithExplicitSchema(string functionName, string plaintext, string password, RNCryptorSchema schemaVersion);
+	void performEncryptionTestWithSchemaCheck(string functionName, string plaintext, string password, RNCryptorSchema schemaVersion);
+
 	void reportSuccess(string functionName, bool success);
 	void reportStatus(string functionName, string status);
 	void reportStatusNotImplemented(string functionName);
@@ -28,8 +38,10 @@ class RNCryptorTests {
 	void testCanDecryptIosEncryptedVersion0WithPlaintextLengthExactlyTwoBlocks();
 	void testCanDecryptIosEncryptedVersion0WithPlaintextLengthNotOnBlockInterval();
 	void testCanDecryptIosEncryptedVersion1WithPlaintextReallyLong();
+	void testCanDecryptIosEncryptedVersion1WithPlaintextLengthExactlyOneBlock();
 	void testCanDecryptIosEncryptedVersion1WithPlaintextLengthNotOnBlockInterval();
 	void testCanDecryptIosEncryptedVersion2WithPlaintextReallyLong();
+	void testCanDecryptIosEncryptedVersion2WithPlaintextLengthExactlyOneBlock();
 	void testCanDecryptIosEncryptedVersion2WithPlaintextLengthNotOnBlockInterval();
 	void testDecryptingWithBadPasswordFails();
 

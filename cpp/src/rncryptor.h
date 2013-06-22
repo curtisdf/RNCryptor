@@ -58,6 +58,7 @@ class RNCryptor {
 
 		string generateHmac(RNCryptorPayloadComponents components, string password);
 		SecByteBlock generateKey(const string salt, const string password);
+		string aesCtrLittleEndianCrypt(const string payload, SecByteBlock key, string iv);
 
 		static string base64_encode(string plaintext);
 		static string base64_decode(string encoded);

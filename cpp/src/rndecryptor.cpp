@@ -1,5 +1,9 @@
 #include "rndecryptor.h"
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
 #include "cryptopp/aes.h"
 using CryptoPP::AES;
 
@@ -17,7 +21,21 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 {
 	RNCryptorPayloadComponents components = this->unpackEncryptedBase64Data(encryptedBase64);
 
+	/*
+	cout << endl;
+	cout << "--- " << __func__ << " Components (as parsed from encrypted input) ---" << endl;
+	cout << "Schema:     " << this->hex_encode(components.schema) << endl;
+	cout << "Options:    " << this->hex_encode(components.options) << endl;
+	cout << "Salt:       " << this->hex_encode(components.salt) << endl;
+	cout << "HMAC Salt:  " << this->hex_encode(components.hmacSalt) << endl;
+	cout << "IV:         " << this->hex_encode(components.iv) << endl;
+	cout << "Ciphertext: " << this->hex_encode(components.ciphertext) << endl;
+	cout << "HMAC:       " << this->hex_encode(components.hmac) << endl;
+	cout << endl;
+	*/
+
 	if (!this->hmacIsValid(components, password)) {
+		//cout << "HMAC mismatch" << endl;
 		return "";
 	}
 
@@ -28,16 +46,7 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 
 	switch (this->aesMode) {
 		case MODE_CTR: {
-			CTR_Mode<AES>::Decryption decryptor;
-			decryptor.SetKeyWithIV((const byte *)key.data(), key.size(), (const byte *)components.iv.data());
-
-			StringSource(components.ciphertext, true,
-				// StreamTransformationFilter removes padding as required
-				new StreamTransformationFilter(decryptor,
-					new StringSink(plaintext)
-				)
-			);
-
+			plaintext = this->aesCtrLittleEndianCrypt(encrypted, key, components.iv);
 			break;
 		}
 		case MODE_CBC: {
@@ -48,13 +57,15 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 			StringSource(components.ciphertext, true,
 				// StreamTransformationFilter removes padding as required
 				new StreamTransformationFilter(decryptor,
-					new StringSink(plaintext)
+					new StringSink(plaintext),
+					StreamTransformationFilter::PKCS_PADDING
 				)
 			);
 
 			break;
 		}
 	}
+//cout << "Decrypted: " << plaintext << endl;
 
 	return plaintext;
 }

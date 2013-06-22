@@ -7,9 +7,8 @@
 using std::string;
 
 class RNEncryptor : public RNCryptor {
-	string generateIv(int length);
-	string generateSalt();
-
+	string generateRandomString(int length);
+	string addPKCS7Padding(string plaintext, int blockSize);
 	public:
 		string encrypt(string plaintext, string password, RNCryptorSchema schemaVersion = SCHEMA_2);
 };

@@ -2,6 +2,14 @@
 #include <sstream>
 using std::stringstream;
 
+#include <algorithm>
+#include <functional>
+
+#include <cmath>
+
+#include <stdio.h>
+using std::sprintf;
+
 #include <iostream>
 using std::cout;
 using std::endl;
@@ -16,13 +24,20 @@ using CryptoPP::PKCS5_PBKDF2_HMAC;
 using CryptoPP::SHA1;
 using CryptoPP::SHA256;
 
+#include "cryptopp/aes.h"
+using CryptoPP::AES;
+
 #include "cryptopp/filters.h"
 using CryptoPP::StringSink;
 using CryptoPP::StringSource;
+using CryptoPP::StreamTransformationFilter;
 using CryptoPP::HashFilter;
 
 #include "cryptopp/hmac.h"
 using CryptoPP::HMAC;
+
+#include "cryptopp/modes.h"
+using CryptoPP::ECB_Mode;
 
 #include "cryptopp/hex.h"
 using CryptoPP::HexEncoder;
@@ -114,19 +129,21 @@ string RNCryptor::generateHmac(RNCryptorPayloadComponents components, string pas
 		}
 	}
 
+//	cout << "HMAC Message: " << RNCryptor::hex_encode(hmacMessage.str()) << endl;
+
 	if (this->hmac_includesPadding && (int)hmac.length() < this->hmac_length) {
+
+		//cout << "Padding to " << hmac.length() << " bytes" << endl;
+
 		stringstream padding;
 		for (int i = hmac.length(); i < this->hmac_length; i++) {
-			padding << 0x00;
+			padding << (char)0x00;
 		}
 		hmac.append(padding.str());
 	}
 
-	/*
-	cout << "HMAC Message: " << RNCryptor::base64_encode(hmacMessage.str()) << endl;
-	cout << "HMAC: " << RNCryptor::base64_encode(hmac) << endl;
-	cout << endl;
-	*/
+//	cout << "HMAC: " << RNCryptor::hex_encode(hmac) << endl;
+//	cout << endl;
 
 	return hmac;
 }
@@ -165,6 +182,80 @@ SecByteBlock RNCryptor::generateKey(const string salt, const string password)
 	*/
 
 	return key;
+}
+
+string RNCryptor::aesCtrLittleEndianCrypt(const string payload, SecByteBlock key, const string iv)
+{
+	//cout << endl;
+	//cout << "---" << __func__ << "---" << endl;
+
+	//cout << "Original IV: " << this->hex_encode(iv) << ", length " << iv.length() << endl;
+
+	string incrementedIv;
+	incrementedIv.assign(iv.begin(), iv.end());
+
+	//cout << "Payload length: " << payload.length() << ", IV length: " << iv.length() << endl;
+	//cout << "Payload size: " << payload.size() << ", IV size: " << iv.size() << endl;
+
+	int blockCount = (int)ceil((float)payload.length() / (float)iv.length());
+
+	//cout << "Block count: " << blockCount << endl;
+
+	stringstream counterStream;
+	for (int i = 0; i < blockCount; ++i) {
+		counterStream << incrementedIv;
+		//cout << "Loop iteration " << i << ", added iv " << this->hex_encode(incrementedIv) << ", iv length " << incrementedIv.length() << ", counter length now " << counterStream.str().length() << endl;
+
+		// Yes, the next line only ever increments the first character
+		// of the counter string, ignoring overflow conditions.  This
+		// matches CommonCrypto's behavior!
+
+		//int thisNum = (int)incrementedIv[0];
+		//int nextNum = thisNum++;
+
+		//cout << "IV[0]: " << thisNum << " (was " << incrementedIv[0] << ")" << nextNum << " (is " << (char)nextNum << ")" << endl;
+		incrementedIv[0] = (char)((int)incrementedIv[0] + 1);
+		//cout << "Block " << i << ": " << this->hex_encode(incrementedIv) << endl;
+
+		//cout << "Counter length: " << counterStream.str().length() << endl;
+	}
+
+	string counter = counterStream.str();
+	string encrypted;
+
+	ECB_Mode<AES>::Encryption encryptor;
+
+	encryptor.SetKey(key, key.size());
+//cout << "Final counter length: " << counter.length() << endl;
+
+	StringSource(counter, true,
+		// StreamTransformationFilter adds padding as required.
+		new StreamTransformationFilter(encryptor,
+			new StringSink(encrypted),
+			StreamTransformationFilter::NO_PADDING
+		)
+	);
+
+	// binary XOR
+	string output(payload);
+	long unsigned int klen = encrypted.length();
+	long unsigned int vlen = payload.length();
+	unsigned long int k = 0;
+	unsigned long int v = 0;
+	for (; v < vlen; v++) {
+		output[v] = payload[v] ^ encrypted[k];
+		k = (++k < klen ? k : 0);
+	}
+
+	/*
+	cout << "Payload:     " << this->hex_encode(payload) << endl;
+	cout << "Counter:     " << this->hex_encode(counter) << endl;
+	cout << "Counter Enc: " << this->hex_encode(encrypted) << endl;
+	cout << "Mangled:     " << this->hex_encode(output) << endl;
+	cout << endl;
+	*/
+
+	return output;
 }
 
 string RNCryptor::base64_decode(string encoded) {

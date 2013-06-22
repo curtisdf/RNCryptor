@@ -66,7 +66,7 @@ abstract class RNCryptor {
 			// Yes, the next line only ever increments the first character
 			// of the counter string, ignoring overflow conditions.  This
 			// matches CommonCrypto's behavior!
-			$iv[0] = chr(ord(substr($iv, 0, 1)) + 1);
+			$iv[0] = chr(ord($iv[0]) + 1);
 		}
 
 		return $payload ^ mcrypt_encrypt($this->_settings->algorithm, $key, $counter, 'ecb');

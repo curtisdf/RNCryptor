@@ -1,5 +1,4 @@
-
-#include "rnencryptor.h"
+#include "encrypt.h"
 
 #include <iostream>
 using std::cout;
@@ -34,16 +33,6 @@ string RNEncryptor::encrypt(string plaintext, string password, RNCryptorSchema s
 	components.hmacSalt = this->generateRandomString(this->saltLength);
 	components.iv = this->generateRandomString(this->ivLength);
 
-	/*
-	cout << endl;
-	cout << "--- " << __func__ << " Components ---" << endl;
-	cout << "Schema:     " << this->hex_encode(components.schema) << endl;
-	cout << "Options:    " << this->hex_encode(components.options) << endl;
-	cout << "Salt:       " << this->hex_encode(components.salt) << endl;
-	cout << "HMAC Salt:  " << this->hex_encode(components.hmacSalt) << endl;
-	cout << "IV:         " << this->hex_encode(components.iv) << endl;
-	*/
-
 	SecByteBlock key = this->generateKey(components.salt, password);
 
 	switch (this->aesMode) {
@@ -54,14 +43,13 @@ string RNEncryptor::encrypt(string plaintext, string password, RNCryptorSchema s
 		case MODE_CBC: {
 
 			string paddedPlaintext = this->addPKCS7Padding(plaintext, components.iv.length());
-//cout << "Padded plaintext length: " << paddedPlaintext.length() << endl;
 
 			CBC_Mode<AES>::Encryption encryptor;
 			encryptor.SetKeyWithIV(key.BytePtr(), key.size(), (const byte *)components.iv.data());
 
 			StringSource(paddedPlaintext, true,
-				// StreamTransformationFilter adds padding as required.
-				new StreamTransformationFilter(encryptor,
+				new StreamTransformationFilter(
+					encryptor,
 					new StringSink(components.ciphertext),
 					StreamTransformationFilter::NO_PADDING
 				)
@@ -79,15 +67,9 @@ string RNEncryptor::encrypt(string plaintext, string password, RNCryptorSchema s
 	binaryData << components.iv;
 	binaryData << components.ciphertext;
 
-	//cout << "Hex encoded: " << this->hex_encode(binaryData.str()) << endl;
-
 	components.hmac = this->generateHmac(components, password);
 
 	binaryData << components.hmac;
-
-	//cout << "Ciphertext: " << this->hex_encode(components.ciphertext) << endl;
-	//cout << "HMAC:       " << this->hex_encode(components.hmac) << endl;
-	//cout << endl;
 
 	return this->base64_encode(binaryData.str());
 }
@@ -110,8 +92,6 @@ string RNEncryptor::addPKCS7Padding(string plaintext, int blockSize)
 
 string RNEncryptor::generateRandomString(int length)
 {
-	//cout << __func__ << "(" << length << ")" << endl;
-
 	AutoSeededRandomPool prng;
 
 	SecByteBlock randomBytes(length);

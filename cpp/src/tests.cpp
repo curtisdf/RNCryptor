@@ -1,7 +1,7 @@
 #include "tests.h"
 
-#include "rndecryptor.h";
-#include "rnencryptor.h";
+#include "decrypt.h";
+#include "encrypt.h";
 
 #include <execinfo.h>
 #include <signal.h>

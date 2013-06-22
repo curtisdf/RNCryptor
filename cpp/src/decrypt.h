@@ -1,7 +1,7 @@
 #ifndef RNDECRYPTOR_H
 #define RNDECRYPTOR_H
 
-#include "rncryptor.h"
+#include "base.h"
 
 #include <iostream>
 using std::string;

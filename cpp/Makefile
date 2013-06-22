@@ -1,12 +1,13 @@
+
+CRYPTOPP_DIR=/usr/local/Cellar/cryptopp/5.6.1
+#POCO_DIR=/usr/local/Cellar/poco/1.4.6
 CC=g++
-CFLAGS=-c -Wall
-#CFLAGS=-c -Wall -g -rdynamic
-LDFLAGS=-I/usr/local/Cellar/cryptopp/5.6.1/include -L/usr/local/Cellar/cryptopp/5.6.1/lib -lcryptopp
-#LDFLAGS=-I/usr/local/Cellar/poco/1.4.6/include/ -L/usr/local/Cellar/poco/1.4.6/lib -lPocoFoundation
-#SOURCES=rncryptor.cpp rnencryptor.cpp rndecryptor.cpp
-SOURCES=src/rncryptor.cpp src/rndecryptor.cpp src/rnencryptor.cpp src/main.cpp src/tests.cpp
+CFLAGS=-c -Wall -shared
+LDFLAGS=-I$(CRYPTOPP_DIR)/include -L$(CRYPTOPP_DIR)/lib -lcryptopp
+#LDFLAGS=-I$(POCO_DIR)/include/ -L$(POCO_DIR)/lib -lPocoFoundation
+SOURCES=src/base.cpp src/encrypt.cpp src/decrypt.cpp src/rncryptor.cpp src/tests.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=rncryptor
+EXECUTABLE=rncryptor-test
 
 all: $(SOURCES) $(EXECUTABLE)
 	

@@ -1,4 +1,4 @@
-#include "rndecryptor.h"
+#include "decrypt.h"
 
 #include <iostream>
 using std::cout;
@@ -21,21 +21,7 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 {
 	RNCryptorPayloadComponents components = this->unpackEncryptedBase64Data(encryptedBase64);
 
-	/*
-	cout << endl;
-	cout << "--- " << __func__ << " Components (as parsed from encrypted input) ---" << endl;
-	cout << "Schema:     " << this->hex_encode(components.schema) << endl;
-	cout << "Options:    " << this->hex_encode(components.options) << endl;
-	cout << "Salt:       " << this->hex_encode(components.salt) << endl;
-	cout << "HMAC Salt:  " << this->hex_encode(components.hmacSalt) << endl;
-	cout << "IV:         " << this->hex_encode(components.iv) << endl;
-	cout << "Ciphertext: " << this->hex_encode(components.ciphertext) << endl;
-	cout << "HMAC:       " << this->hex_encode(components.hmac) << endl;
-	cout << endl;
-	*/
-
 	if (!this->hmacIsValid(components, password)) {
-		//cout << "HMAC mismatch" << endl;
 		return "";
 	}
 
@@ -55,7 +41,6 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 			decryptor.SetKeyWithIV((const byte *)key.data(), key.size(), (const byte *)components.iv.data());
 
 			StringSource(components.ciphertext, true,
-				// StreamTransformationFilter removes padding as required
 				new StreamTransformationFilter(decryptor,
 					new StringSink(plaintext),
 					StreamTransformationFilter::PKCS_PADDING
@@ -65,7 +50,6 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 			break;
 		}
 	}
-//cout << "Decrypted: " << plaintext << endl;
 
 	return plaintext;
 }
@@ -78,13 +62,11 @@ RNCryptorPayloadComponents RNDecryptor::unpackEncryptedBase64Data(string encrypt
 	int offset = 0;
 
 	components.schema = binaryData[0];
-	//components.schema = (RNCryptorSchema)binaryData[0];
 	offset++;
 
 	this->configureSettings((RNCryptorSchema)binaryData[0]);
 
 	components.options = binaryData[1];
-	//components.options = (RNCryptorOptions)binaryData[1];
 	offset++;
 
 	components.salt = binaryData.substr(offset, this->saltLength);

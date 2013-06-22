@@ -1,7 +1,7 @@
 #include <string>
 using std::string;
 
-#include "rncryptor.h"
+#include "base.h"
 
 class RNCryptorTests {
 	int completedTests;

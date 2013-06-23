@@ -1,13 +1,16 @@
 using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
+using System.Collections.Generic;
 
 namespace RNCryptor
 {
 	public enum Schema : short {V0, V1, V2};
-
 	public enum AesMode : short {CTR, CBC};
 	public enum Pbkdf2Prf : short {SHA1};
 	public enum HmacAlgorithm : short {SHA1, SHA256};
-	public enum Algorithm : short {RIJNDAEL_128 /* should this be "AES" instead? */ };
+	public enum Algorithm : short {AES};
 	public enum Options : short {V0, V1};
 
 	public struct PayloadComponents {
@@ -29,7 +32,7 @@ namespace RNCryptor
 		protected bool hmac_includesPadding;
 		protected HmacAlgorithm hmac_algorithm;
 
-		protected const Algorithm algorithm = Algorithm.RIJNDAEL_128;
+		protected const Algorithm algorithm = Algorithm.AES;
 		protected const short saltLength = 8;
 		protected const short ivLength = 16;
 		protected const Pbkdf2Prf pbkdf2_prf = Pbkdf2Prf.SHA1;
@@ -69,79 +72,113 @@ namespace RNCryptor
 
 		protected byte[] generateHmac (PayloadComponents components, string password)
 		{
-			//Console.WriteLine ("--- generateHmac ---");
-
-			byte[] hmacMessage = new byte[components.ciphertext.Length];
-
-			int messageOffset = 0;
+			List<byte> hmacMessage = new List<byte>();
 			if (this.hmac_includesHeader) {
-				hmacMessage = new byte[hmacMessage.Length + 1 + 1 + Cryptor.saltLength + Cryptor.saltLength + Cryptor.ivLength];
-
-				hmacMessage [0] = components.schema [0];
-				messageOffset++;
-
-				hmacMessage [1] = components.options [0];
-				messageOffset++;
-
-				for (int i = 0; i < components.salt.Length; i++) {
-					hmacMessage [messageOffset + i] = components.salt [i];
-					messageOffset++;
-				}
-
-				for (int i = 0; i < components.hmacSalt.Length; i++) {
-					hmacMessage [messageOffset + i] = components.hmacSalt [i];
-					messageOffset++;
-				}
-
-				for (int i = 0; i < components.iv.Length; i++) {
-					hmacMessage [messageOffset + i] = components.iv [i];
-					messageOffset++;
-				}
+				hmacMessage.AddRange (this.assembleHeader(components));
 			}
-
-			for (int i = 0; i < components.ciphertext.Length; i++) {
-				hmacMessage [messageOffset] = components.ciphertext [i];
-				messageOffset++;
-			}
+			hmacMessage.AddRange (components.ciphertext);
 
 			byte[] key = this.generateKey (components.hmacSalt, password);
 
-			byte[] hmac = new byte[Cryptor.hmac_length];
-
+			HMAC hmacAlgo;
 			switch (this.hmac_algorithm) {
-			case HmacAlgorithm.SHA1:
-				var myHmacSha1 = new System.Security.Cryptography.HMACSHA1(key);
-				myHmacSha1.Initialize();
-				hmac = myHmacSha1.ComputeHash(hmacMessage);
-				break;
+				case HmacAlgorithm.SHA1:
+					hmacAlgo = new HMACSHA1(key);
+					break;
 
-			case HmacAlgorithm.SHA256:
-				var myHmacSha256 = new System.Security.Cryptography.HMACSHA256(key);
-				myHmacSha256.Initialize();
-				hmac = myHmacSha256.ComputeHash(hmacMessage);
-				break;
+				case HmacAlgorithm.SHA256:
+					hmacAlgo = new HMACSHA256(key);
+					break;
+			}
+			List<byte> hmac = new List<byte>();
+			hmac.AddRange (hmacAlgo.ComputeHash(hmacMessage.ToArray()));
+
+			if (this.hmac_includesPadding) {
+				for (int i = hmac.Count; i < Cryptor.hmac_length; i++) {
+					hmac.Add (0x00);
+				}
 			}
 
-			if (this.hmac_includesPadding && hmac.Length < Cryptor.hmac_length) {
-
-				byte[] paddedHmac = new byte[Cryptor.hmac_length];
-				for (int i = 0; i < hmac.Length; i++) {
-					paddedHmac[i] = hmac[i];
-				}
-				for (int i = hmac.Length; i < paddedHmac.Length; i++) {
-					paddedHmac[i] = 0x00;
-				}
-				hmac = paddedHmac;
-			}
-			//Console.WriteLine("Generated: " + this.hex_encode(hmac));
-
-			return hmac;
+			return hmac.ToArray ();
 		}
 
-		private byte[] generateKey (byte[] salt, string password)
+		protected byte[] assembleHeader (PayloadComponents components)
 		{
-			var pbkdf2 = new System.Security.Cryptography.Rfc2898DeriveBytes(password, salt, Cryptor.pbkdf2_iterations);
+			List<byte> headerBytes = new List<byte>();
+			headerBytes.AddRange (components.schema);
+			headerBytes.AddRange (components.options);
+			headerBytes.AddRange (components.salt);
+			headerBytes.AddRange (components.hmacSalt);
+			headerBytes.AddRange (components.iv);
+
+			return headerBytes.ToArray();
+		}
+
+		protected byte[] generateKey (byte[] salt, string password)
+		{
+			var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Cryptor.pbkdf2_iterations);
 			return pbkdf2.GetBytes (Cryptor.pbkdf2_keyLength);
+		}
+
+		protected byte[] encryptAesCtrLittleEndianNoPadding (byte[] plaintextBytes, byte[] key, byte[] iv)
+		{
+			byte[] counter = this.computeAesCtrLittleEndianCounter(plaintextBytes.Length, iv);
+			byte[] encrypted = this.encryptAesEcbNoPadding(counter, key);
+			return this.bitwiseXOR(plaintextBytes, encrypted);
+		}
+
+		private byte[] computeAesCtrLittleEndianCounter (int payloadLength, byte[] iv)
+		{
+			byte[] incrementedIv = new byte[iv.Length];
+			iv.CopyTo(incrementedIv, 0);
+			
+			int blockCount = (int)Math.Ceiling ((decimal)payloadLength / (decimal)iv.Length);
+			
+			List<byte> counter = new List<byte>();
+			
+			for (int i = 0; i < blockCount; ++i) {
+				counter.AddRange (incrementedIv);
+				
+				// Yes, the next line only ever increments the first character
+				// of the counter string, ignoring overflow conditions.  This
+				// matches CommonCrypto's behavior!
+				incrementedIv[0]++;
+			}
+
+			return counter.ToArray();
+		}
+
+		private byte[] encryptAesEcbNoPadding (byte[] plaintext, byte[] key)
+		{
+			byte[] encrypted;
+			
+			var aes = Aes.Create();
+			aes.Mode = CipherMode.ECB;
+			aes.Padding = PaddingMode.None;
+			var encryptor = aes.CreateEncryptor(key, null);
+			
+			using (var ms = new MemoryStream())
+			{
+				using (var cs1 = new CryptoStream(ms, encryptor, CryptoStreamMode.Write)) {
+					cs1.Write(plaintext, 0, plaintext.Length);
+				}
+				encrypted = ms.ToArray();
+			}
+			return encrypted;
+		}
+
+		private byte[] bitwiseXOR (byte[] first, byte[] second)
+		{
+			byte[] output = new byte[first.Length];
+			ulong klen = (ulong)second.Length;
+			ulong vlen = (ulong)first.Length;
+			ulong k = 0;
+			ulong v = 0;
+			for (; v < vlen; v++) {
+				output[v] = (byte)(first[v] ^ second[k]);
+				k = (++k < klen ? k : 0);
+			}
+			return output;
 		}
 
 		protected string hex_encode (byte[] input)

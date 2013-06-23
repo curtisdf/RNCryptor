@@ -337,7 +337,7 @@ void RNCryptorTests::testCanDecryptIosEncryptedVersion2WithPlaintextLengthNotOnB
 
 void RNCryptorTests::testDecryptingWithBadPasswordFails() {
 	RNDecryptor *cryptor = new RNDecryptor();
-	string decrypted = cryptor->decrypt(PLAINTEXT_V2_NON_BLOCK_INTERVAL, "bad-password");
+	string decrypted = cryptor->decrypt(IOS_ENCRYPTED_V2_NON_BLOCK_INTERVAL, "bad-password");
 	delete cryptor;
 
 	this->reportSuccess(__func__, decrypted == "");

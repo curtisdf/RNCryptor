@@ -2,13 +2,14 @@
 #include "base.h";
 
 #include <iostream>
-#include <sstream>
-using std::stringstream;
+using std::cout;
+using std::endl;
 
 int main () {
 
-	RNCryptorTests *tester = new RNCryptorTests();
-	tester->run();
+	cout << "This is an RNCryptor test!!!" << endl;
 
-	delete tester;
+	//RNCryptorTests *tester = new RNCryptorTests();
+	//tester->run();
+	//delete tester;
 }

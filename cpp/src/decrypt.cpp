@@ -27,12 +27,11 @@ string RNDecryptor::decrypt(string encryptedBase64, string password)
 
 	SecByteBlock key = this->generateKey(components.salt, password);
 
-	string encrypted = components.ciphertext;
 	string plaintext = "";
 
 	switch (this->aesMode) {
 		case MODE_CTR: {
-			plaintext = this->aesCtrLittleEndianCrypt(encrypted, key, components.iv);
+			plaintext = this->aesCtrLittleEndianCrypt(components.ciphertext, key, components.iv);
 			break;
 		}
 		case MODE_CBC: {

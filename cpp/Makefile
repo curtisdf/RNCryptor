@@ -3,16 +3,15 @@ CC=g++
 CFLAGS=-c -Wall
 
 CRYPTOPP_DIR=/usr/local/Cellar/cryptopp/5.6.1
-#POCO_DIR=/usr/local/Cellar/poco/1.4.6
-#LDFLAGS=-I$(POCO_DIR)/include/ -L$(POCO_DIR)/lib -lPocoFoundation
+POCO_DIR=/usr/local/Cellar/poco/1.4.6
 
 SHARED_LIB_LDFLAGS=-I$(CRYPTOPP_DIR)/include -L$(CRYPTOPP_DIR)/lib -lcryptopp
 SHARED_LIB_SOURCES=src/base.cpp src/encrypt.cpp src/decrypt.cpp
 SHARED_LIB_OBJECTS=$(SHARED_LIB_SOURCES:.cpp=.o)
 SHARED_LIB_EXECUTABLE=librncryptor.dylib
 
-MAIN_LDFLAGS=-L. -lrncryptor
-MAIN_SOURCES=src/rncryptor.cpp
+MAIN_LDFLAGS=-L. -lrncryptor  -I$(POCO_DIR)/include/ -L$(POCO_DIR)/lib -lPocoFoundation -lPocoUtil
+MAIN_SOURCES=src/app.cpp
 MAIN_OBJECTS=$(MAIN_SOURCES:.cpp=.o)
 MAIN_EXECUTABLE=rncryptor
 
@@ -22,7 +21,7 @@ TEST_OBJECTS=$(TEST_SOURCES:.cpp=.o)
 TEST_EXECUTABLE=rncryptortest
 
 EXECUTABLES=$(SHARED_LIB_EXECUTABLE) $(MAIN_EXECUTABLE) $(TEST_EXECUTABLE)
-OBJECTS=$(SHARED_LIB_OBJECTS) $(MAIN_OBJECTS) $(TEST_OBJECTS)
+OBJECTS_DIR=src
 
 all: $(SHARED_LIB_EXECUTABLE) $(MAIN_EXECUTABLE) $(TEST_EXECUTABLE)
 
@@ -40,7 +39,7 @@ $(TEST_EXECUTABLE): $(SHARED_LIB) $(TEST_OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -rf $(EXECUTABLES) $(OBJECTS)
+	rm -rf $(EXECUTABLES) $(OBJECTS_DIR)/*.o
 
 
 #$(CXX) -fPIC -c shared.cpp -o shared.o

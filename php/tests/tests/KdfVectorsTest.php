@@ -16,43 +16,43 @@ class KdfVectors extends VectorBase {
 	}
 	
 	public function testAllFieldsEmptyOrZero() {
-		$vector = json_decode('{"title":"All fields empty or zero","version":"3","password":"","salt":"0000000000000000","key":"ea339082 7e11f272 8d8050a0 1a8876c9 9588cced b47fb3b0 99bbaf9b 22685a47"}');
+		$vector = json_decode('{"title":"All fields empty or zero","version":"3","password":"","salt":"0000000000000000","key":"ea339082 7e11f272 8d8050a0 1a8876c9 9588cced b47fb3b0 99bbaf9b 22685a47"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testOneByte() {
-		$vector = json_decode('{"title":"One byte","version":"3","password":"a","salt":"0102030405060708","key":"fc632b0c a6b23eff 9a9dc3e0 e585167f 5a328916 ed19f835 58be3ba9 828797cd"}');
+		$vector = json_decode('{"title":"One byte","version":"3","password":"a","salt":"0102030405060708","key":"fc632b0c a6b23eff 9a9dc3e0 e585167f 5a328916 ed19f835 58be3ba9 828797cd"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testShortPassword() {
-		$vector = json_decode('{"title":"Short password","version":"3","password":"thepassword","salt":"0203040506070801","key":"0ea84f52 52310dc3 e3a7607c 33bfd1eb 580805fb 68293005 da21037c cf499626"}');
+		$vector = json_decode('{"title":"Short password","version":"3","password":"thepassword","salt":"0203040506070801","key":"0ea84f52 52310dc3 e3a7607c 33bfd1eb 580805fb 68293005 da21037c cf499626"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testPassphrase() {
-		$vector = json_decode('{"title":"Passphrase","version":"3","password":"this is a bit longer password","salt":"0304050607080102","key":"71343acb 1e9675b0 16ac65dc fe5ddac2 e57ed9c3 5565fdbb 2dd6d2ce fe263d5b"}');
+		$vector = json_decode('{"title":"Passphrase","version":"3","password":"this is a bit longer password","salt":"0304050607080102","key":"71343acb 1e9675b0 16ac65dc fe5ddac2 e57ed9c3 5565fdbb 2dd6d2ce fe263d5b"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testLongPassphrase() {
-		$vector = json_decode('{"title":"Long passphrase","version":"3","password":"$$$it was the epoch of belief, it was the epoch of incredulity; it was the season of Light, it was the season of Darkness; it was the spring of hope, it was the winter of despair; we had everything before us, we had nothing before us; we were all going directly to Heaven, we were all going the other way.","salt":"0405060708010203","key":"11b52c50 cbf45be6 a636a314 2b8c30b8 5a624481 4a7d43e3 7457f38d e46c6735"}');
+		$vector = json_decode('{"title":"Long passphrase","version":"3","password":"$$$it was the epoch of belief, it was the epoch of incredulity; it was the season of Light, it was the season of Darkness; it was the spring of hope, it was the winter of despair; we had everything before us, we had nothing before us; we were all going directly to Heaven, we were all going the other way.","salt":"0405060708010203","key":"11b52c50 cbf45be6 a636a314 2b8c30b8 5a624481 4a7d43e3 7457f38d e46c6735"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testMultibyte() {
-		$vector = json_decode('{"title":"Multibyte","version":"3","password":"\u4e2d\u6587\u5bc6\u7801","salt":"0506070801020304","key":"d2fc3237 d4a69668 ca83d969 c2cda1ac 6c368479 2b6644b1 a90b2052 007215dd"}');
+		$vector = json_decode('{"title":"Multibyte","version":"3","password":"\u4e2d\u6587\u5bc6\u7801","salt":"0506070801020304","key":"d2fc3237 d4a69668 ca83d969 c2cda1ac 6c368479 2b6644b1 a90b2052 007215dd"}', true);
 		$this->_runKdfTest($vector);
 
 	}
 
 	public function testMixedLanguage() {
-		$vector = json_decode('{"title":"Mixed language","version":"3","password":"\u4e2d\u6587\u5bc6\u7801 with a little English, too.","salt":"0607080102030405","key":"46bda5f4 65982a47 40c728bc 14c5de5c c7fc4eea f0aa41bb 9b9e8495 452dafff"}');
+		$vector = json_decode('{"title":"Mixed language","version":"3","password":"\u4e2d\u6587\u5bc6\u7801 with a little English, too.","salt":"0607080102030405","key":"46bda5f4 65982a47 40c728bc 14c5de5c c7fc4eea f0aa41bb 9b9e8495 452dafff"}', true);
 		$this->_runKdfTest($vector);
 
 	}

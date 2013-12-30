@@ -94,7 +94,7 @@ EOF;
 		$method = str_replace('__METHOD_SUFFIX__', $methodSuffix, $method);
 
 		$lines = array(
-			sprintf('$vector = json_decode(\'%s\');', json_encode($vector)),
+			sprintf('$vector = json_decode(\'%s\', true);', json_encode($vector)),
 			sprintf('$this->_run%sTest($vector);', ucfirst($filename))
 		);
 		$methods[] = str_replace('__METHOD_BODY__', "\t\t" . join("\n\t\t", $lines) . "\n", $method);

@@ -3,7 +3,7 @@ require_once __DIR__ . '/functions.php';
 
 class RNCryptor {
 
-	const DEFAULT_SCHEMA_VERSION = 3;
+	const DEFAULT_SCHEMA_VERSION = 2;
 
 	protected $_settings;
 

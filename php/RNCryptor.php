@@ -46,6 +46,14 @@ abstract class RNCryptor {
 				$settings->hmac->includesPadding = false;
 				break;
 
+			case 3:
+				$settings->mode = 'cbc';
+				$settings->options = 1;
+				$settings->hmac->includesHeader = true;
+				$settings->hmac->algorithm = 'sha256';
+				$settings->hmac->includesPadding = false;
+				break;
+
 			default:
 				throw new Exception('Unsupported schema version ' . $version);
 		}

@@ -16,11 +16,11 @@ class RNEncryptor extends RNCryptor {
 	 * @param string $plaintext Text to be encrypted
 	 * @param string $password Password to use
 	 * @param int $version (Optional) RNCryptor schema version to use.
-	 *                     Defaults to 2.
+	 *                     Defaults to 3.
 	 * @throws Exception If the provided version (if any) is unsupported
 	 * @return string Encrypted, Base64-encoded string
 	 */
-	public function encrypt($plaintext, $password, $version = 2) {
+	public function encrypt($plaintext, $password, $version = 3) {
 
 		$this->_configureSettings($version);
 

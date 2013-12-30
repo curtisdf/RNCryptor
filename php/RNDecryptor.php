@@ -44,7 +44,7 @@ class RNDecryptor extends RNCryptor {
 	private function _unpackEncryptedBase64Data($encryptedBase64Data) {
 
 		$binaryData = base64_decode($encryptedBase64Data);
-		
+
 		$components = new stdClass();
 		$components->headers = $this->_parseHeaders($binaryData);
 

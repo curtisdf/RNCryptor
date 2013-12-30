@@ -1,14 +1,16 @@
 <?php
 require_once __DIR__ . '/functions.php';
 
-abstract class RNCryptor {
+class RNCryptor {
+
+	const DEFAULT_SCHEMA_VERSION = 3;
 
 	protected $_settings;
 
 	protected function _configureSettings($version) {
-		
+
 		$settings = new stdClass();
-		
+
 		$settings->algorithm = MCRYPT_RIJNDAEL_128;
 		$settings->saltLength = 8;
 		$settings->ivLength = 16;
@@ -102,6 +104,35 @@ abstract class RNCryptor {
 		}
 	
 		return $hmac;
+	}
+
+	protected function _generateHmacWithArbitraryKey(stdClass $components, $hmacKey) {
+	
+		$hmacMessage = '';
+		if ($this->_settings->hmac->includesHeader) {
+			$hmacMessage .= $components->headers->version
+							. $components->headers->options
+							. $components->headers->iv;
+		}
+
+		$hmacMessage .= $components->ciphertext;
+
+		$hmac = hash_hmac($this->_settings->hmac->algorithm, $hmacMessage, $hmacKey, true);
+
+		if ($this->_settings->hmac->includesPadding) {
+			$hmac = str_pad($hmac, $this->_settings->hmac->length, chr(0));
+		}
+	
+		return $hmac;
+	}
+
+	/**
+	 * Key derivation -- This method is intended for testing.  It merely
+	 * exposes the underlying key-derivation functionality.
+	 */
+	public function generateKey($salt, $password, $version = self::DEFAULT_SCHEMA_VERSION) {
+		$this->_configureSettings($version);
+		return $this->_generateKey($salt, $password);
 	}
 
 	protected function _generateKey($salt, $password) {
